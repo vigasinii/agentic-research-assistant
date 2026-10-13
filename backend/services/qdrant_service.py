@@ -44,6 +44,15 @@ class QdrantService:
                 ),
             )
             print(f"[{_ts()}] [qdrant_service] Created collection '{settings.QDRANT_COLLECTION}'")
+        # Ensure payload index exists for document_id filtering (required on Qdrant Cloud)
+        try:
+            self._client.create_payload_index(
+                collection_name=settings.QDRANT_COLLECTION,
+                field_name="document_id",
+                field_schema="keyword",
+            )
+        except Exception:
+            pass  # Index already exists
         else:
             print(f"[{_ts()}] [qdrant_service] Collection '{settings.QDRANT_COLLECTION}' already exists")
 
