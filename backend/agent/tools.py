@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 
-from ..models import ChunkMeta
-from ..services.embeddings import embedding_service
-from ..services.llm import llm_service
-from ..services.qdrant_service import qdrant_service
-from ..config import settings
+from models import ChunkMeta
+from services.embeddings import embedding_service
+from services.llm import llm_service
+from services.qdrant_service import qdrant_service
+from config import settings
 
 
 def _ts() -> str:

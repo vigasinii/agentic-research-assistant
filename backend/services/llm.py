@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from groq import Groq
 
-from ..config import settings
+from config import settings
 
 
 def _ts() -> str:

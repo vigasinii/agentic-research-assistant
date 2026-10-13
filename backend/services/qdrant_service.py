@@ -13,8 +13,8 @@ from qdrant_client.http.models import (
     VectorParams,
 )
 
-from ..config import settings
-from ..models import ChunkMeta, DocumentMeta
+from config import settings
+from models import ChunkMeta, DocumentMeta
 
 logger = logging.getLogger(__name__)
 

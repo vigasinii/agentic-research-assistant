@@ -5,9 +5,9 @@ from typing import Literal
 
 from langgraph.graph import END, StateGraph
 
-from ..config import settings
-from ..models import Citation, ExecutionStep, ResearchResponse
-from ..services.llm import llm_service
+from config import settings
+from models import Citation, ExecutionStep, ResearchResponse
+from services.llm import llm_service
 from .state import AgentState
 from .tools import (
     grade_evidence,
@@ -23,7 +23,7 @@ def _ts() -> str:
 
 def _chunks_from_state(state: AgentState):
     """Deserialize retrieved_chunks list of dicts back to ChunkMeta-like objects for tools."""
-    from ..models import ChunkMeta
+    from models import ChunkMeta
     chunks = []
     for c in state.get("retrieved_chunks", []):
         try:

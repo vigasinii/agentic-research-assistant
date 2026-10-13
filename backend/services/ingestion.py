@@ -2,8 +2,8 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Optional
 
-from ..config import settings
-from ..models import UploadResponse
+from config import settings
+from models import UploadResponse
 from .embeddings import EmbeddingService, embedding_service
 from .qdrant_service import QdrantService, qdrant_service
 
