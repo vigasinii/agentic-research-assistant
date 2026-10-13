@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = 50
     MAX_RETRIEVAL_ITERATIONS: int = 3
     TOP_K: int = 5
+    HF_API_TOKEN: Optional[str] = None
     EVAL_API_KEY: str = "eval-secret-change-me"
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
