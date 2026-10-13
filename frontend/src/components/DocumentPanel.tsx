@@ -164,7 +164,6 @@ export default function DocumentPanel() {
                 <div className="flex items-center gap-1.5">
                   <TypeBadge type={doc.file_type} />
                   <span className="text-[10px] text-white/25">{formatBytes(doc.size_bytes)}</span>
-                  <span className="text-[10px] text-white/20">·</span>
                   <span className="text-[10px] text-white/25">{doc.chunk_count} chunk{doc.chunk_count !== 1 ? 's' : ''}</span>
                 </div>
               </div>

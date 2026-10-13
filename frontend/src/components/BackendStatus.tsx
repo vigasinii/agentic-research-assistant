@@ -43,7 +43,7 @@ export default function BackendStatus({ onStatusChange }: Props) {
     waking: {
       dot: 'bg-amber-400 animate-pulse',
       pill: 'bg-amber-500/8 border-amber-500/15 text-amber-300/80',
-      label: elapsed > 0 ? `Waking up · ${elapsed}s` : 'Waking up…',
+      label: elapsed > 0 ? `Waking up (${elapsed}s)` : 'Waking up',
     },
     ready: {
       dot: 'bg-emerald-400',
@@ -59,7 +59,6 @@ export default function BackendStatus({ onStatusChange }: Props) {
 
   return (
     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium tracking-wide transition-all duration-500 ${cfg.pill}`}>
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
       {cfg.label}
     </div>
   );

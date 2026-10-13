@@ -118,7 +118,7 @@ export default function ResearchComposer({ onSubmit, loading, error, onRetry }: 
         />
         <div className="absolute bottom-3 left-4 right-3 flex items-center justify-between">
           <span className="text-[10px] text-[#9999AD]/40">
-            Press Enter to submit · Shift+Enter for new line
+            Enter to submit  /  Shift+Enter for new line
           </span>
           <button
             onClick={() => handleSubmit()}

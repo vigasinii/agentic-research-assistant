@@ -134,7 +134,7 @@ export default function AnswerPanel({ result, onNewResearch }: Props) {
           {result.citations.length === 0 && !result.abstained && (
             <div className="px-4 pb-3 flex items-center gap-2 text-[11px] text-[#F2B86B]/70">
               <AlertTriangle size={11} />
-              Answer has no citations — verify independently
+              Answer has no citations. Verify independently.
             </div>
           )}
         </div>

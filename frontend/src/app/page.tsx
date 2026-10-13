@@ -83,7 +83,7 @@ export default function Home() {
             className="shrink-0 flex items-center gap-2.5 px-5 py-2 border-b border-[#F2B86B]/10 bg-gradient-to-r from-[#F2B86B]/5 to-transparent text-[11px] text-[#F2B86B]/70 font-medium overflow-hidden"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#F2B86B]/80 animate-pulse shrink-0" />
-            Backend is waking up on Render free tier — this takes up to 60 s. Features will unlock automatically.
+            Backend is waking up on Render free tier. This takes up to 60 seconds. Features will unlock automatically.
           </motion.div>
         )}
       </AnimatePresence>
@@ -149,7 +149,7 @@ export default function Home() {
                         <div key={doc.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-[#262638]/60">
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-medium text-[#F4F4F7]/85 truncate">{doc.filename}</p>
-                            <p className="text-[11px] text-[#9999AD]/60">{doc.chunk_count} chunks · {doc.file_type.toUpperCase()}</p>
+                            <p className="text-[11px] text-[#9999AD]/60">{doc.chunk_count} chunks  {doc.file_type.toUpperCase()}</p>
                           </div>
                           <p className="text-[11px] text-[#9999AD]/40 font-mono shrink-0">
                             {new Date(doc.uploaded_at).toLocaleDateString()}

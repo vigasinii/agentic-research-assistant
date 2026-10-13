@@ -66,12 +66,12 @@ export default function ExecutionTimeline({ steps, retrievalIterations, totalLat
                 </div>
                 {step.input_summary && (
                   <p className="text-[10px] text-[#9999AD]/40 leading-relaxed truncate">
-                    <span className="text-[#9999AD]/25">in · </span>{step.input_summary}
+                    <span className="text-[#9999AD]/25">in  </span>{step.input_summary}
                   </p>
                 )}
                 {step.output_summary && (
                   <p className="text-[10px] text-[#9999AD]/60 leading-relaxed truncate">
-                    <span className="text-[#9999AD]/25">out · </span>{step.output_summary}
+                    <span className="text-[#9999AD]/25">out  </span>{step.output_summary}
                   </p>
                 )}
               </div>
@@ -84,7 +84,7 @@ export default function ExecutionTimeline({ steps, retrievalIterations, totalLat
       {/* Footer */}
       <div className="flex items-center gap-4 pt-2 border-t border-[#262638] text-[10px] text-[#9999AD]/40">
         <span>{retrievalIterations} retrieval iteration{retrievalIterations !== 1 ? 's' : ''}</span>
-        <span className="text-[#262638]">·</span>
+        <span className="text-[#262638]">/</span>
         <span>Total: <span className="text-[#9999AD]/70 font-medium">{fmtMs(totalLatencyMs)}</span></span>
       </div>
     </div>
