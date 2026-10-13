@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8001/:path*',
+        destination: 'https://agentic-research-assistant-syg1.onrender.com/:path*',
       },
     ];
   },
