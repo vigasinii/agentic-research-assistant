@@ -1,12 +1,37 @@
 'use client';
 
 import { useState } from 'react';
-import { Send, Loader2, Clock } from 'lucide-react';
+import { ArrowUp, Clock, Sparkles } from 'lucide-react';
 import { askQuestion, ResearchResponse } from '@/lib/api';
 import AnswerPanel from './AnswerPanel';
 import EvalDashboard from './EvalDashboard';
 
 const MAX_HISTORY = 5;
+
+function ThinkingAnimation() {
+  return (
+    <div className="flex flex-col items-center gap-4 py-20">
+      <div className="relative w-10 h-10">
+        <div className="absolute inset-0 rounded-full border border-indigo-500/20 animate-ping" />
+        <div className="absolute inset-1 rounded-full bg-gradient-to-br from-indigo-500/20 to-violet-600/20 flex items-center justify-center">
+          <Sparkles size={12} className="text-indigo-400" />
+        </div>
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className="thinking-dot w-1.5 h-1.5 rounded-full bg-indigo-400"
+              style={{ animationDelay: `${i * 0.18}s` }}
+            />
+          ))}
+        </div>
+        <p className="text-[12px] text-white/30 font-medium">Agent is researching…</p>
+      </div>
+    </div>
+  );
+}
 
 export default function ResearchPanel() {
   const [question, setQuestion] = useState('');
@@ -14,90 +39,104 @@ export default function ResearchPanel() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ResearchResponse | null>(null);
   const [history, setHistory] = useState<string[]>([]);
+  const [focused, setFocused] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
     const q = question.trim();
     if (!q || loading) return;
-
     setLoading(true);
     setError(null);
     setResult(null);
-
     try {
       const res = await askQuestion(q);
       setResult(res);
-      setHistory(prev => {
-        const next = [q, ...prev.filter(h => h !== q)];
-        return next.slice(0, MAX_HISTORY);
-      });
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Research failed');
+      setHistory(prev => [q, ...prev.filter(h => h !== q)].slice(0, MAX_HISTORY));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Research failed');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <form onSubmit={handleSubmit} className="mb-4">
-        <div className="flex gap-2">
+    <div className="max-w-2xl mx-auto px-6 py-8">
+
+      {/* Search area */}
+      <div className="mb-6">
+        <div className={`relative rounded-xl border transition-all duration-300 ${
+          focused
+            ? 'border-indigo-500/40 shadow-[0_0_0_1px_rgba(99,102,241,0.2),0_0_32px_rgba(99,102,241,0.08)] bg-white/[0.03]'
+            : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.12]'
+        }`}>
           <textarea
             value={question}
             onChange={e => setQuestion(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e as unknown as React.FormEvent);
-              }
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
             }}
             placeholder="Ask a research question…"
             rows={3}
             disabled={loading}
-            className="flex-1 bg-slate-800 border border-slate-700 focus:border-blue-500 focus:outline-none rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 resize-none transition-colors disabled:opacity-60"
+            className="w-full bg-transparent px-4 pt-4 pb-12 text-[14px] text-white/90 placeholder-white/20 resize-none focus:outline-none leading-relaxed disabled:opacity-60"
           />
-          <button
-            type="submit"
-            disabled={loading || !question.trim()}
-            className="self-end flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-3 rounded-lg transition-colors"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-            {loading ? 'Running…' : 'Ask'}
-          </button>
-        </div>
-      </form>
-
-      {history.length > 0 && (
-        <div className="mb-4 flex gap-2 flex-wrap">
-          {history.map((h, i) => (
+          <div className="absolute bottom-3 right-3 flex items-center gap-2">
+            {question.trim() && (
+              <span className="text-[10px] text-white/20 font-medium">Enter ↵</span>
+            )}
             <button
-              key={i}
-              onClick={() => setQuestion(h)}
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-full px-3 py-1 transition-colors truncate max-w-xs"
+              onClick={() => handleSubmit()}
+              disabled={loading || !question.trim()}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 ${
+                question.trim() && !loading
+                  ? 'bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-900/50 text-white'
+                  : 'bg-white/5 text-white/20 cursor-not-allowed'
+              }`}
             >
-              <Clock size={10} />
-              <span className="truncate">{h}</span>
+              {loading
+                ? <div className="w-3.5 h-3.5 border border-white/30 border-t-white/80 rounded-full animate-spin" />
+                : <ArrowUp size={14} />
+              }
             </button>
-          ))}
+          </div>
         </div>
-      )}
 
+        {/* History pills */}
+        {history.length > 0 && !loading && (
+          <div className="flex gap-1.5 flex-wrap mt-2.5">
+            {history.map((h, i) => (
+              <button
+                key={i}
+                onClick={() => setQuestion(h)}
+                className="flex items-center gap-1.5 text-[11px] text-white/35 hover:text-white/70 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] hover:border-white/[0.1] rounded-full px-2.5 py-1 transition-all duration-150 max-w-[200px] truncate"
+              >
+                <Clock size={9} className="shrink-0" />
+                <span className="truncate">{h}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* States */}
       {error && (
-        <div className="mb-4 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-4 py-3">
+        <div className="mb-6 text-[12px] text-red-300/80 bg-red-500/5 border border-red-500/10 rounded-xl px-4 py-3 leading-relaxed">
           {error}
         </div>
       )}
 
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-          <Loader2 size={32} className="animate-spin mb-3 text-blue-500" />
-          <p className="text-sm">Agent is researching your question…</p>
+      {loading && <ThinkingAnimation />}
+
+      {result && !loading && (
+        <div className="animate-fade-up">
+          <AnswerPanel result={result} />
         </div>
       )}
 
-      {result && !loading && <AnswerPanel result={result} />}
-
-      <div className="mt-8">
+      {/* Eval dashboard */}
+      <div className="mt-10">
         <EvalDashboard />
       </div>
     </div>

@@ -23,55 +23,44 @@ export default function BackendStatus({ onStatusChange }: Props) {
         if (!cancelled) setElapsed(Math.floor((Date.now() - start) / 1000));
       }, 1000);
 
-      for (let attempt = 0; attempt < 20; attempt++) {
+      for (let i = 0; i < 20; i++) {
         if (cancelled) return;
         const ok = await checkHealth();
         if (ok) {
-          if (!cancelled) {
-            setStatus('ready');
-            onStatusChange?.('ready');
-            clearInterval(timer);
-          }
+          if (!cancelled) { setStatus('ready'); onStatusChange?.('ready'); clearInterval(timer); }
           return;
         }
         await new Promise(r => setTimeout(r, 3000));
       }
-      if (!cancelled) {
-        setStatus('error');
-        onStatusChange?.('error');
-        clearInterval(timer);
-      }
+      if (!cancelled) { setStatus('error'); onStatusChange?.('error'); clearInterval(timer); }
     }
 
     poll();
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
+    return () => { cancelled = true; clearInterval(timer); };
   }, [onStatusChange]);
 
-  if (status === 'ready') {
-    return (
-      <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-        <span className="w-2 h-2 rounded-full bg-emerald-400" />
-        Backend ready
-      </span>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <span className="flex items-center gap-1.5 text-xs text-red-400">
-        <span className="w-2 h-2 rounded-full bg-red-400" />
-        Backend unreachable
-      </span>
-    );
-  }
+  const cfg = {
+    waking: {
+      dot: 'bg-amber-400 animate-pulse',
+      pill: 'bg-amber-500/8 border-amber-500/15 text-amber-300/80',
+      label: elapsed > 0 ? `Waking up · ${elapsed}s` : 'Waking up…',
+    },
+    ready: {
+      dot: 'bg-emerald-400',
+      pill: 'bg-emerald-500/8 border-emerald-500/15 text-emerald-300/90',
+      label: 'Backend ready',
+    },
+    error: {
+      dot: 'bg-red-400',
+      pill: 'bg-red-500/8 border-red-500/15 text-red-300/80',
+      label: 'Unreachable',
+    },
+  }[status];
 
   return (
-    <span className="flex items-center gap-1.5 text-xs text-amber-400">
-      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-      Waking up backend{elapsed > 0 ? ` (${elapsed}s)` : '…'}
-    </span>
+    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium tracking-wide transition-all duration-500 ${cfg.pill}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
+      {cfg.label}
+    </div>
   );
 }

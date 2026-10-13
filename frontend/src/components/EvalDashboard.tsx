@@ -1,15 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Play, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Play, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 import { runEvals, getEvalResults, EvalSummary } from '@/lib/api';
 
-function MetricRow({ label, value, isPercent = false }: { label: string; value: number; isPercent?: boolean }) {
-  const display = isPercent ? `${(value * 100).toFixed(1)}%` : `${value.toFixed(0)}ms`;
+function Gauge({ value, label }: { value: number; label: string }) {
+  const pct = Math.round(value * 100);
+  const color = pct >= 80 ? 'text-emerald-400' : pct >= 50 ? 'text-amber-400' : 'text-red-400';
+  const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500';
   return (
-    <div className="flex justify-between items-center py-2 border-b border-slate-700 last:border-0">
-      <span className="text-xs text-slate-400">{label}</span>
-      <span className="text-xs font-medium text-white">{display}</span>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] text-white/40">{label}</span>
+        <span className={`text-[12px] font-semibold tabular-nums ${color}`}>{pct}%</span>
+      </div>
+      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
@@ -23,119 +30,111 @@ export default function EvalDashboard() {
 
   async function handleRun() {
     if (!evalKey.trim() || loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await runEvals(evalKey);
-      setSummary(res);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Eval run failed');
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { setSummary(await runEvals(evalKey)); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Eval run failed'); }
+    finally { setLoading(false); }
   }
 
   async function handleFetch() {
     if (!evalKey.trim() || loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await getEvalResults(evalKey);
-      setSummary(res);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to fetch results');
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { setSummary(await getEvalResults(evalKey)); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to fetch results'); }
+    finally { setLoading(false); }
   }
 
   return (
-    <div className="border border-slate-700 rounded-lg overflow-hidden">
+    <div className="rounded-xl border border-white/[0.06] overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 hover:bg-slate-750 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.035] transition-colors"
       >
-        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Eval Dashboard</span>
-        {open ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+        <span className="text-[11px] font-semibold text-white/35 uppercase tracking-widest">Eval Dashboard</span>
+        {open
+          ? <ChevronUp size={12} className="text-white/20" />
+          : <ChevronDown size={12} className="text-white/20" />
+        }
       </button>
 
       {open && (
-        <div className="p-4 bg-slate-900 space-y-4">
+        <div className="p-4 space-y-4 bg-white/[0.01] border-t border-white/[0.05]">
+
+          {/* Key input + actions */}
           <div className="flex gap-2">
             <input
               type="password"
               value={evalKey}
               onChange={e => setEvalKey(e.target.value)}
-              placeholder="Eval API key"
-              className="flex-1 bg-slate-800 border border-slate-700 focus:border-blue-500 focus:outline-none rounded px-3 py-2 text-sm text-white placeholder-slate-500 transition-colors"
+              placeholder="Eval API key…"
+              className="flex-1 bg-white/[0.03] border border-white/[0.07] focus:border-indigo-500/40 focus:outline-none rounded-lg px-3 py-2 text-[12px] text-white/80 placeholder-white/20 transition-colors"
             />
             <button
               onClick={handleRun}
               disabled={loading || !evalKey.trim()}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium px-3 py-2 rounded transition-colors"
+              className="flex items-center gap-1.5 bg-indigo-600/80 hover:bg-indigo-500/80 disabled:opacity-40 text-white text-[11px] font-medium px-3 py-2 rounded-lg transition-colors"
             >
-              <Play size={12} />
+              <Play size={11} />
               Run
             </button>
             <button
               onClick={handleFetch}
               disabled={loading || !evalKey.trim()}
-              className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white text-xs font-medium px-3 py-2 rounded transition-colors"
+              className="flex items-center gap-1.5 bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-white/60 hover:text-white/90 text-[11px] font-medium px-3 py-2 rounded-lg transition-colors"
             >
-              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+              <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
               Fetch
             </button>
           </div>
 
           {error && (
-            <div className="text-xs text-red-400 bg-red-900/20 border border-red-800 rounded px-3 py-2">
+            <div className="text-[11px] text-red-300/70 bg-red-500/5 border border-red-500/10 rounded-lg px-3 py-2">
               {error}
             </div>
           )}
 
           {summary && (
             <>
-              <div className="bg-slate-800 border border-slate-700 rounded-lg p-3">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Metrics</p>
-                <MetricRow label="Precision@K" value={summary.precision_at_k} isPercent />
-                <MetricRow label="Recall@K" value={summary.recall_at_k} isPercent />
-                <MetricRow label="Abstention Accuracy" value={summary.abstention_accuracy} isPercent />
-                <MetricRow label="Citation Validity" value={summary.citation_validity} isPercent />
-                <MetricRow label="Avg Latency" value={summary.avg_latency_ms} />
+              {/* Metric gauges */}
+              <div className="rounded-lg border border-white/[0.06] p-3 space-y-3">
+                <p className="text-[10px] font-semibold text-white/25 uppercase tracking-widest mb-2">Metrics</p>
+                <Gauge value={summary.precision_at_k}       label="Precision@K" />
+                <Gauge value={summary.recall_at_k}          label="Recall@K" />
+                <Gauge value={summary.abstention_accuracy}  label="Abstention Accuracy" />
+                <Gauge value={summary.citation_validity}    label="Citation Validity" />
+                <div className="pt-1 border-t border-white/[0.05] flex justify-between">
+                  <span className="text-[11px] text-white/35">Avg Latency</span>
+                  <span className="text-[11px] font-medium text-white/60">{summary.avg_latency_ms.toFixed(0)} ms</span>
+                </div>
               </div>
 
-              {summary.cases && summary.cases.length > 0 && (
-                <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 py-2 border-b border-slate-700">
-                    Per-Case Results
+              {/* Per-case table */}
+              {summary.cases?.length > 0 && (
+                <div className="rounded-lg border border-white/[0.06] overflow-hidden">
+                  <p className="text-[10px] font-semibold text-white/25 uppercase tracking-widest px-3 py-2 border-b border-white/[0.05]">
+                    Per-case results
                   </p>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
+                    <table className="w-full text-[11px]">
                       <thead>
-                        <tr className="border-b border-slate-700">
-                          <th className="text-left text-slate-500 font-medium px-3 py-2">ID</th>
-                          <th className="text-left text-slate-500 font-medium px-3 py-2">Scenario</th>
-                          <th className="text-left text-slate-500 font-medium px-3 py-2">Result</th>
-                          <th className="text-right text-slate-500 font-medium px-3 py-2">Latency</th>
+                        <tr className="border-b border-white/[0.05]">
+                          {['ID', 'Scenario', 'Result', 'Latency'].map(h => (
+                            <th key={h} className="text-left text-white/25 font-medium px-3 py-2">{h}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
                         {summary.cases.map((c, i) => (
-                          <tr key={i} className="border-b border-slate-700 last:border-0">
-                            <td className="px-3 py-2 text-slate-400">{c.question_id}</td>
-                            <td className="px-3 py-2 text-slate-300">{c.scenario}</td>
+                          <tr key={i} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
+                            <td className="px-3 py-2 text-white/35 font-mono">{c.question_id}</td>
+                            <td className="px-3 py-2 text-white/60 max-w-[160px] truncate">{c.scenario}</td>
                             <td className="px-3 py-2">
-                              {c.passed ? (
-                                <span className="flex items-center gap-1 text-green-400">
-                                  <CheckCircle size={12} /> Pass
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-1 text-red-400">
-                                  <XCircle size={12} /> Fail
-                                </span>
-                              )}
+                              {c.passed
+                                ? <span className="flex items-center gap-1 text-emerald-400"><CheckCircle2 size={11} />Pass</span>
+                                : <span className="flex items-center gap-1 text-red-400"><XCircle size={11} />Fail</span>
+                              }
                             </td>
-                            <td className="px-3 py-2 text-right text-slate-400">{c.latency_ms}ms</td>
+                            <td className="px-3 py-2 text-white/35 font-mono">{c.latency_ms} ms</td>
                           </tr>
                         ))}
                       </tbody>

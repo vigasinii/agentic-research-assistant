@@ -1,25 +1,26 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, Trash2, FileText, X } from 'lucide-react';
+import { Upload, Trash2, FileText, File, X, Plus } from 'lucide-react';
 import { getDocuments, uploadDocument, deleteDocument, Document } from '@/lib/api';
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function formatBytes(b: number) {
+  if (b < 1024) return `${b} B`;
+  if (b < 1_048_576) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / 1_048_576).toFixed(1)} MB`;
 }
 
-function FileTypeBadge({ type }: { type: string }) {
-  const colors: Record<string, string> = {
-    pdf: 'bg-red-900 text-red-300',
-    txt: 'bg-blue-900 text-blue-300',
-    md: 'bg-purple-900 text-purple-300',
-  };
-  const cls = colors[type.toLowerCase()] ?? 'bg-slate-700 text-slate-300';
+const TYPE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  pdf: { bg: 'bg-red-500/10',    text: 'text-red-400',    label: 'PDF' },
+  txt: { bg: 'bg-sky-500/10',    text: 'text-sky-400',    label: 'TXT' },
+  md:  { bg: 'bg-violet-500/10', text: 'text-violet-400', label: 'MD'  },
+};
+
+function TypeBadge({ type }: { type: string }) {
+  const s = TYPE_STYLES[type.toLowerCase()] ?? { bg: 'bg-white/5', text: 'text-white/40', label: type.toUpperCase() };
   return (
-    <span className={`text-xs font-medium px-1.5 py-0.5 rounded uppercase ${cls}`}>
-      {type}
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider ${s.bg} ${s.text}`}>
+      {s.label}
     </span>
   );
 }
@@ -30,7 +31,7 @@ export default function DocumentPanel() {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function load(retries = 3) {
@@ -69,7 +70,7 @@ export default function DocumentPanel() {
   }
 
   async function handleDelete(id: string) {
-    setDeleteConfirm(null);
+    setDeleteId(null);
     try {
       await deleteDocument(id);
       setDocs(d => d.filter(doc => doc.id !== id));
@@ -92,91 +93,95 @@ export default function DocumentPanel() {
   }
 
   return (
-    <div className="p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Documents</h2>
-        <button
+    <div className="flex flex-col h-full">
+      {/* Panel header */}
+      <div className="px-4 pt-4 pb-3 border-b border-white/[0.05]">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">Documents</span>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1 text-[11px] font-medium text-indigo-300 hover:text-indigo-200 disabled:opacity-50 transition-colors"
+          >
+            <Plus size={12} />
+            {uploading ? 'Uploading…' : 'Add'}
+          </button>
+        </div>
+
+        {/* Drop zone */}
+        <div
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
           onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-2.5 py-1.5 rounded transition-colors"
+          className={`relative rounded-lg border border-dashed cursor-pointer transition-all duration-200 px-3 py-3 text-center ${
+            dragOver
+              ? 'border-indigo-500/60 bg-indigo-500/5 shadow-[inset_0_0_20px_rgba(99,102,241,0.06)]'
+              : 'border-white/10 hover:border-white/20 hover:bg-white/[0.015]'
+          }`}
         >
-          <Upload size={12} />
-          {uploading ? 'Uploading…' : 'Upload'}
-        </button>
+          <Upload size={13} className={`mx-auto mb-1.5 ${dragOver ? 'text-indigo-400' : 'text-white/20'}`} />
+          <p className={`text-[11px] font-medium ${dragOver ? 'text-indigo-300' : 'text-white/25'}`}>
+            {uploading ? 'Processing…' : 'Drop PDF, TXT, or MD'}
+          </p>
+        </div>
+
+        <input ref={fileRef} type="file" accept=".pdf,.txt,.md" className="hidden" onChange={onFileChange} />
       </div>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept=".pdf,.txt,.md"
-        className="hidden"
-        onChange={onFileChange}
-      />
-
-      <div
-        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
-        className={`border-2 border-dashed rounded-lg p-4 mb-4 text-center text-xs text-slate-500 transition-colors cursor-pointer ${
-          dragOver ? 'border-blue-500 bg-blue-900/10 text-blue-400' : 'border-slate-700 hover:border-slate-600'
-        }`}
-        onClick={() => fileRef.current?.click()}
-      >
-        Drop PDF, TXT, or MD here
-      </div>
-
+      {/* Error */}
       {error && (
-        <div className="mb-3 flex items-center gap-2 text-xs text-red-400 bg-red-900/20 border border-red-800 rounded px-3 py-2">
-          <X size={12} />
-          {error}
+        <div className="mx-3 mt-3 flex items-start gap-2 text-[11px] text-red-300/80 bg-red-500/5 border border-red-500/10 rounded-lg px-3 py-2">
+          <X size={11} className="shrink-0 mt-0.5 text-red-400/60" />
+          <span className="leading-relaxed">{error}</span>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto space-y-2">
+      {/* Doc list */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
         {loading ? (
-          <div className="text-xs text-slate-500 text-center py-8">Loading…</div>
+          <div className="space-y-2 pt-1">
+            {[1, 2].map(i => (
+              <div key={i} className="h-14 rounded-lg bg-white/[0.03] animate-pulse" />
+            ))}
+          </div>
         ) : docs.length === 0 ? (
-          <div className="text-xs text-slate-500 text-center py-8">No documents uploaded yet</div>
+          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+            <File size={20} className="text-white/10" />
+            <p className="text-[11px] text-white/20">No documents yet</p>
+          </div>
         ) : (
           docs.map(doc => (
-            <div key={doc.id} className="bg-slate-800 border border-slate-700 rounded-lg p-3 group">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-2 min-w-0">
-                  <FileText size={14} className="text-slate-400 mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-white truncate">{doc.filename}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <FileTypeBadge type={doc.file_type} />
-                      <span className="text-xs text-slate-500">{formatBytes(doc.size_bytes)}</span>
-                      <span className="text-xs text-slate-500">{doc.chunk_count} chunks</span>
-                    </div>
+            <div
+              key={doc.id}
+              className="group relative flex items-start gap-2.5 p-2.5 rounded-lg bg-white/[0.025] border border-white/[0.04] hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-150"
+            >
+              <div className="mt-0.5 w-6 h-6 rounded-md bg-white/5 flex items-center justify-center shrink-0">
+                <FileText size={11} className="text-white/30" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-white/85 truncate leading-tight mb-1">{doc.filename}</p>
+                <div className="flex items-center gap-1.5">
+                  <TypeBadge type={doc.file_type} />
+                  <span className="text-[10px] text-white/25">{formatBytes(doc.size_bytes)}</span>
+                  <span className="text-[10px] text-white/20">·</span>
+                  <span className="text-[10px] text-white/25">{doc.chunk_count} chunk{doc.chunk_count !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+              <div className="shrink-0">
+                {deleteId === doc.id ? (
+                  <div className="flex flex-col gap-0.5">
+                    <button onClick={() => handleDelete(doc.id)} className="text-[9px] text-red-400 hover:text-red-300 font-medium px-1">Confirm</button>
+                    <button onClick={() => setDeleteId(null)} className="text-[9px] text-white/30 hover:text-white/60 font-medium px-1">Cancel</button>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {deleteConfirm === doc.id ? (
-                    <>
-                      <button
-                        onClick={() => handleDelete(doc.id)}
-                        className="text-xs text-red-400 hover:text-red-300 px-1.5 py-0.5 rounded transition-colors"
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(null)}
-                        className="text-xs text-slate-500 hover:text-slate-300 px-1.5 py-0.5 rounded transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => setDeleteConfirm(doc.id)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
+                ) : (
+                  <button
+                    onClick={() => setDeleteId(doc.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-white/20 hover:text-red-400 transition-all duration-150 rounded"
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                )}
               </div>
             </div>
           ))
