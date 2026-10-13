@@ -80,13 +80,14 @@ class QdrantService:
             query_filter = Filter(
                 must=[FieldCondition(key="document_id", match=MatchValue(value=filter_doc_id))]
             )
-        results = self._client.search(
+        results = self._client.query_points(
             collection_name=settings.QDRANT_COLLECTION,
-            query_vector=query_vector,
+            query=query_vector,
             limit=top_k,
             query_filter=query_filter,
             with_payload=True,
-        )
+        ).points
+        print(f"[{_ts()}] [qdrant_service] search returned {len(results)} raw results")
         chunks = []
         for r in results:
             p = r.payload or {}

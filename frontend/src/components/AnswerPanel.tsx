@@ -8,6 +8,79 @@ interface Props {
   result: ResearchResponse;
 }
 
+function MarkdownAnswer({ text }: { text: string }) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  const renderInline = (s: string): React.ReactNode => {
+    const parts = s.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((p, idx) =>
+      p.startsWith('**') && p.endsWith('**')
+        ? <strong key={idx}>{p.slice(2, -2)}</strong>
+        : p
+    );
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Table: detect header separator row (---|---|---)
+    if (i + 1 < lines.length && /^\s*\|?[\s\-|]+\|?\s*$/.test(lines[i + 1]) && line.trim().startsWith('|')) {
+      const headers = line.split('|').filter((_, idx, arr) => idx > 0 && idx < arr.length - 1).map(h => h.trim());
+      i += 2; // skip header + separator
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        const cells = lines[i].split('|').filter((_, idx, arr) => idx > 0 && idx < arr.length - 1).map(c => c.trim());
+        rows.push(cells);
+        i++;
+      }
+      elements.push(
+        <div key={i} className="overflow-x-auto my-3">
+          <table className="min-w-full text-sm border-collapse">
+            <thead>
+              <tr>
+                {headers.map((h, hi) => (
+                  <th key={hi} className="border border-slate-600 bg-slate-700 px-3 py-1.5 text-left text-slate-200 font-semibold">
+                    {renderInline(h)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => (
+                <tr key={ri} className={ri % 2 === 0 ? 'bg-slate-800' : 'bg-slate-750'}>
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="border border-slate-600 px-3 py-1.5 text-slate-300">
+                      {renderInline(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
+
+    if (line.startsWith('# ')) {
+      elements.push(<h1 key={i} className="text-xl font-bold text-white mt-3 mb-1">{renderInline(line.slice(2))}</h1>);
+    } else if (line.startsWith('## ')) {
+      elements.push(<h2 key={i} className="text-lg font-bold text-white mt-3 mb-1">{renderInline(line.slice(3))}</h2>);
+    } else if (line.startsWith('### ')) {
+      elements.push(<h3 key={i} className="text-base font-semibold text-white mt-2 mb-1">{renderInline(line.slice(4))}</h3>);
+    } else if (line.trim() === '') {
+      elements.push(<br key={i} />);
+    } else {
+      elements.push(<p key={i} className="text-base text-white leading-relaxed">{renderInline(line)}</p>);
+    }
+    i++;
+  }
+
+  return <div>{elements}</div>;
+}
+
 export default function AnswerPanel({ result }: Props) {
   return (
     <div className="space-y-4">
@@ -24,7 +97,7 @@ export default function AnswerPanel({ result }: Props) {
       {!result.abstained && (
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
           <p className="text-sm font-semibold text-slate-400 mb-2">Answer</p>
-          <p className="text-base text-white leading-relaxed whitespace-pre-wrap">{result.answer}</p>
+          <MarkdownAnswer text={result.answer} />
         </div>
       )}
 

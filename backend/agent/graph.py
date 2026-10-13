@@ -142,7 +142,8 @@ def grade_node(state: AgentState) -> AgentState:
     # Check if we've hit max iterations — force abstain if not sufficient
     iteration_count = state.get("iteration_count", 0)
     max_iter = state.get("max_iterations", settings.MAX_RETRIEVAL_ITERATIONS)
-    will_abstain = not sufficient and iteration_count >= max_iter
+    # Only abstain if we have zero relevant chunks; partial evidence still yields an answer
+    will_abstain = iteration_count >= max_iter and len(relevant_ids) == 0 and not sufficient
 
     steps = _record_step(
         state,

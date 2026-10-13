@@ -52,7 +52,7 @@ def _check_rate_limit(ip: str) -> bool:
 async def lifespan(app: FastAPI):
     logger.info("Starting agentic-research-assistant backend")
     try:
-        await qdrant_service.ensure_collection()
+        qdrant_service.ensure_collection()
         logger.info("Qdrant collection ready")
     except Exception as exc:
         logger.error("Failed to connect to Qdrant on startup: %s", exc)
@@ -91,7 +91,7 @@ def _require_eval_key(x_eval_key: Optional[str] = Header(default=None)) -> None:
 async def health():
     qdrant_status = "ok"
     try:
-        await qdrant_service.ensure_collection()
+        qdrant_service.ensure_collection()
     except Exception as exc:
         logger.warning("Qdrant health check failed: %s", exc)
         qdrant_status = "error"
@@ -117,7 +117,7 @@ async def upload_document(file: UploadFile):
         )
 
     try:
-        result = await ingestion_service.ingest_file(filename, content, ext)
+        result = ingestion_service.ingest_file(filename, content, ext)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
@@ -129,12 +129,12 @@ async def upload_document(file: UploadFile):
 
 @app.get("/documents", response_model=list[DocumentMeta])
 async def list_documents():
-    return await qdrant_service.list_documents()
+    return qdrant_service.list_documents()
 
 
 @app.delete("/documents/{document_id}")
 async def delete_document(document_id: str):
-    count = await qdrant_service.delete_document(document_id)
+    count = qdrant_service.delete_document(document_id)
     if count == 0:
         raise HTTPException(status_code=404, detail=f"Document '{document_id}' not found")
     return {"deleted": count, "document_id": document_id}
@@ -154,7 +154,7 @@ async def research(request: ResearchRequest, x_forwarded_for: Optional[str] = He
 
     run_id = str(uuid.uuid4())
     try:
-        response = await run_agent(request.question)
+        response = run_agent(request.question)
         response.run_id = run_id
         _research_results[run_id] = response
         return response
@@ -175,7 +175,7 @@ async def get_research(run_id: str):
 async def run_evals(_: None = Depends(_require_eval_key)):
     from evals.runner import EvalRunner
     runner = EvalRunner()
-    return await runner.run_eval_suite()
+    return runner.run_eval_suite()
 
 
 @app.get("/evals/results", response_model=EvalSummary)

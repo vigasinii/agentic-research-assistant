@@ -1,4 +1,5 @@
 import hashlib
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -57,10 +58,10 @@ class IngestionService:
         if not raw_chunks:
             raise ValueError("No text could be extracted from the document.")
 
-        # Assign chunk IDs
+        # Assign chunk IDs — Qdrant requires UUID or unsigned int
         for i, chunk in enumerate(raw_chunks):
             chunk["chunk_index"] = i
-            chunk["chunk_id"] = f"{document_id}_{i}"
+            chunk["chunk_id"] = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{document_id}_{i}"))
 
         texts = [c["text"] for c in raw_chunks]
         vectors = self._embedder.embed_batch(texts)

@@ -78,7 +78,10 @@ def grade_evidence(question: str, chunks: list[ChunkMeta]) -> dict:
             "content": (
                 f"Question: {question}\n\n"
                 f"Evidence chunks:\n{evidence_text}\n\n"
-                "Assess whether the above evidence is sufficient to answer the question. "
+                "Assess whether the above evidence is sufficient to support a useful answer "
+                "to the question. Mark sufficient=true if the evidence covers the topic at "
+                "least partially and can produce a meaningful, non-trivial answer. Only mark "
+                "sufficient=false if the evidence is completely unrelated or empty. "
                 "Return a JSON object with these exact fields:\n"
                 '{"sufficient": true or false, "relevant_chunk_ids": ["chunk_id1", ...], '
                 '"reason": "brief explanation", "confidence": 0.0 to 1.0}'
