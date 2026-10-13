@@ -33,16 +33,24 @@ export default function DocumentPanel() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function load() {
+  async function load(retries = 3) {
     setLoading(true);
     setError(null);
-    try {
-      setDocs(await getDocuments());
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load documents');
-    } finally {
-      setLoading(false);
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        setDocs(await getDocuments());
+        setLoading(false);
+        return;
+      } catch (e: unknown) {
+        if (attempt < retries) {
+          setError('Service is starting up, retrying…');
+          await new Promise(r => setTimeout(r, 3000));
+        } else {
+          setError(e instanceof Error ? e.message : 'Failed to load documents');
+        }
+      }
     }
+    setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
