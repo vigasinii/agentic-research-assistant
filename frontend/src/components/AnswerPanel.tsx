@@ -1,16 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertTriangle, FileText, ChevronDown, ChevronUp, Copy, Check, RotateCcw } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { ResearchResponse } from '@/lib/api';
-import ExecutionTimeline from './ExecutionTimeline';
 
-interface Props { result: ResearchResponse; }
+interface Props {
+  result: ResearchResponse;
+  onNewResearch: () => void;
+}
 
 function renderInline(s: string): React.ReactNode[] {
   return s.split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
     p.startsWith('**') && p.endsWith('**')
-      ? <strong key={i} className="font-semibold text-white/95">{p.slice(2, -2)}</strong>
+      ? <strong key={i} className="font-semibold text-[#F4F4F7]">{p.slice(2, -2)}</strong>
       : <span key={i}>{p}</span>
   );
 }
@@ -32,15 +35,15 @@ function MarkdownAnswer({ text }: { text: string }) {
         i++;
       }
       els.push(
-        <div key={`t${i}`} className="overflow-x-auto my-4 rounded-lg border border-white/[0.06]">
+        <div key={`t${i}`} className="overflow-x-auto my-4 rounded-lg border border-[#262638]">
           <table className="min-w-full text-[13px]">
             <thead className="bg-white/[0.03]">
-              <tr>{headers.map((h, hi) => <th key={hi} className="px-3 py-2 text-left text-white/60 font-semibold border-b border-white/[0.06]">{renderInline(h)}</th>)}</tr>
+              <tr>{headers.map((h, hi) => <th key={hi} className="px-3 py-2 text-left text-[#9999AD] font-semibold border-b border-[#262638]">{renderInline(h)}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((row, ri) => (
                 <tr key={ri} className={ri % 2 === 0 ? '' : 'bg-white/[0.015]'}>
-                  {row.map((cell, ci) => <td key={ci} className="px-3 py-2 text-white/75 border-b border-white/[0.04] last-of-type:border-0">{renderInline(cell)}</td>)}
+                  {row.map((cell, ci) => <td key={ci} className="px-3 py-2 text-[#F4F4F7]/75 border-b border-[#262638]/50 last-of-type:border-0">{renderInline(cell)}</td>)}
                 </tr>
               ))}
             </tbody>
@@ -50,86 +53,120 @@ function MarkdownAnswer({ text }: { text: string }) {
       continue;
     }
 
-    if (line.startsWith('# '))       els.push(<h1 key={i} className="text-[17px] font-bold text-white mt-4 mb-2 leading-snug">{renderInline(line.slice(2))}</h1>);
-    else if (line.startsWith('## ')) els.push(<h2 key={i} className="text-[15px] font-semibold text-white/90 mt-4 mb-1.5 leading-snug">{renderInline(line.slice(3))}</h2>);
-    else if (line.startsWith('### '))els.push(<h3 key={i} className="text-[13px] font-semibold text-white/80 mt-3 mb-1">{renderInline(line.slice(4))}</h3>);
+    if (line.startsWith('# '))       els.push(<h1 key={i} className="text-[17px] font-bold text-[#F4F4F7] mt-4 mb-2 leading-snug">{renderInline(line.slice(2))}</h1>);
+    else if (line.startsWith('## ')) els.push(<h2 key={i} className="text-[15px] font-semibold text-[#F4F4F7]/90 mt-4 mb-1.5 leading-snug">{renderInline(line.slice(3))}</h2>);
+    else if (line.startsWith('### '))els.push(<h3 key={i} className="text-[13px] font-semibold text-[#F4F4F7]/80 mt-3 mb-1">{renderInline(line.slice(4))}</h3>);
     else if (/^\d+\.\s/.test(line)) {
       const num = line.match(/^(\d+)\.\s/)?.[1];
       const content = line.replace(/^\d+\.\s/, '');
       els.push(
         <div key={i} className="flex gap-2.5 my-1.5">
-          <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-500/15 border border-indigo-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-400 mt-0.5">{num}</span>
-          <p className="text-[14px] text-white/80 leading-relaxed flex-1">{renderInline(content)}</p>
+          <span className="shrink-0 w-5 h-5 rounded-full bg-[#8B7CFF]/15 border border-[#8B7CFF]/20 flex items-center justify-center text-[10px] font-bold text-[#8B7CFF] mt-0.5">{num}</span>
+          <p className="text-[14px] text-[#F4F4F7]/80 leading-relaxed flex-1">{renderInline(content)}</p>
         </div>
       );
     }
     else if (line.trim() === '') els.push(<div key={i} className="h-1" />);
-    else els.push(<p key={i} className="text-[14px] text-white/80 leading-relaxed my-1">{renderInline(line)}</p>);
+    else els.push(<p key={i} className="text-[14px] text-[#F4F4F7]/80 leading-relaxed my-1">{renderInline(line)}</p>);
     i++;
   }
 
   return <div className="space-y-0.5">{els}</div>;
 }
 
-export default function AnswerPanel({ result }: Props) {
+export default function AnswerPanel({ result, onNewResearch }: Props) {
   const [citOpen, setCitOpen] = useState(false);
-  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(result.answer);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
-    <div className="space-y-3">
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-3 w-full max-w-2xl mx-auto"
+    >
+      {/* Question block */}
+      <div className="border-l-2 border-[#8B7CFF]/50 pl-3 py-1">
+        <p className="text-[12px] text-[#9999AD] mb-0.5 uppercase tracking-wider font-semibold">Question</p>
+        <p className="text-[14px] text-[#F4F4F7]/80 leading-relaxed">{result.question}</p>
+      </div>
 
       {/* Abstention warning */}
       {result.abstained && result.abstention_reason && (
-        <div className="flex gap-3 bg-amber-500/5 border border-amber-500/15 rounded-xl p-4">
-          <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+        <div className="flex gap-3 bg-[#F2B86B]/5 border border-[#F2B86B]/15 rounded-xl p-4">
+          <AlertTriangle size={15} className="text-[#F2B86B] shrink-0 mt-0.5" />
           <div>
-            <p className="text-[11px] font-semibold text-amber-400 mb-1 uppercase tracking-wide">Abstained</p>
-            <p className="text-[13px] text-amber-300/80 leading-relaxed">{result.abstention_reason}</p>
+            <p className="text-[11px] font-semibold text-[#F2B86B] mb-1 uppercase tracking-wide">Abstained</p>
+            <p className="text-[13px] text-[#F2B86B]/80 leading-relaxed">{result.abstention_reason}</p>
           </div>
         </div>
       )}
 
       {/* Answer card */}
       {!result.abstained && (
-        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
-          {/* Accent bar + label */}
-          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.05] bg-white/[0.015]">
-            <div className="w-1 h-3.5 rounded-full bg-gradient-to-b from-indigo-400 to-violet-500" />
-            <span className="text-[10px] font-semibold text-white/35 uppercase tracking-widest">Answer</span>
+        <div className="rounded-xl border border-[#262638] bg-white/[0.02] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#262638] bg-white/[0.01]">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-3.5 rounded-full bg-gradient-to-b from-[#8B7CFF] to-[#6366f1]" />
+              <span className="text-[10px] font-semibold text-[#9999AD]/50 uppercase tracking-widest">Answer</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1.5 text-[11px] text-[#9999AD]/60 hover:text-[#F4F4F7] transition-colors"
+              >
+                {copied ? <Check size={11} className="text-[#42D6A4]" /> : <Copy size={11} />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
           </div>
           <div className="px-4 py-4">
             <MarkdownAnswer text={result.answer} />
           </div>
+
+          {/* Verification warning */}
+          {result.citations.length === 0 && !result.abstained && (
+            <div className="px-4 pb-3 flex items-center gap-2 text-[11px] text-[#F2B86B]/70">
+              <AlertTriangle size={11} />
+              Answer has no citations — verify independently
+            </div>
+          )}
         </div>
       )}
 
       {/* Citations */}
       {result.citations.length > 0 && (
-        <div className="rounded-xl border border-white/[0.07] overflow-hidden">
+        <div className="rounded-xl border border-[#262638] overflow-hidden">
           <button
             onClick={() => setCitOpen(o => !o)}
             className="w-full flex items-center justify-between px-4 py-2.5 bg-white/[0.02] hover:bg-white/[0.035] transition-colors"
           >
             <div className="flex items-center gap-2">
-              <FileText size={12} className="text-white/30" />
-              <span className="text-[11px] font-medium text-white/50">
+              <FileText size={12} className="text-[#9999AD]/40" />
+              <span className="text-[11px] font-medium text-[#9999AD]/60">
                 {result.citations.length} citation{result.citations.length !== 1 ? 's' : ''}
               </span>
             </div>
-            {citOpen ? <ChevronUp size={12} className="text-white/25" /> : <ChevronDown size={12} className="text-white/25" />}
+            {citOpen ? <ChevronUp size={12} className="text-[#9999AD]/30" /> : <ChevronDown size={12} className="text-[#9999AD]/30" />}
           </button>
 
           {citOpen && (
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-[#262638]/60">
               {result.citations.map((c, i) => (
                 <div key={c.chunk_id ?? i} className="px-4 py-3 bg-white/[0.01] hover:bg-white/[0.025] transition-colors">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-[11px] font-medium text-indigo-400/90">{c.source_filename}</span>
+                    <span className="text-[11px] font-medium text-[#8B7CFF]/90">{c.source_filename}</span>
                     {c.page_number != null && (
-                      <span className="text-[10px] text-white/25 bg-white/5 px-1.5 py-0.5 rounded">p. {c.page_number}</span>
+                      <span className="text-[10px] text-[#9999AD]/40 bg-white/5 px-1.5 py-0.5 rounded">p. {c.page_number}</span>
                     )}
                   </div>
-                  <p className="text-[12px] text-white/45 leading-relaxed line-clamp-3 font-mono">{c.excerpt}</p>
+                  <p className="text-[12px] text-[#9999AD]/60 leading-relaxed line-clamp-3 font-mono">{c.excerpt}</p>
                 </div>
               ))}
             </div>
@@ -137,33 +174,16 @@ export default function AnswerPanel({ result }: Props) {
         </div>
       )}
 
-      {/* Execution timeline */}
-      <div className="rounded-xl border border-white/[0.07] overflow-hidden">
+      {/* New Research button */}
+      <div className="flex justify-end pt-1">
         <button
-          onClick={() => setTimelineOpen(o => !o)}
-          className="w-full flex items-center justify-between px-4 py-2.5 bg-white/[0.02] hover:bg-white/[0.035] transition-colors"
+          onClick={onNewResearch}
+          className="flex items-center gap-2 text-[12px] text-[#9999AD]/60 hover:text-[#F4F4F7] bg-white/[0.03] hover:bg-white/[0.06] border border-[#262638] hover:border-[#262638]/80 rounded-lg px-3 py-2 transition-all duration-150"
         >
-          <div className="flex items-center gap-2">
-            <div className="flex gap-0.5">
-              {result.execution_steps.slice(0, 5).map((_, i) => (
-                <div key={i} className="w-1 h-3 rounded-full bg-indigo-500/40" style={{ height: `${8 + (i % 3) * 4}px` }} />
-              ))}
-            </div>
-            <span className="text-[11px] font-medium text-white/50">
-              {(result.total_latency_ms / 1000).toFixed(2)}s · {result.execution_steps.length} steps
-            </span>
-          </div>
-          {timelineOpen ? <ChevronUp size={12} className="text-white/25" /> : <ChevronDown size={12} className="text-white/25" />}
+          <RotateCcw size={11} />
+          New Research
         </button>
-
-        {timelineOpen && (
-          <ExecutionTimeline
-            steps={result.execution_steps}
-            retrievalIterations={result.retrieval_iterations}
-            totalLatencyMs={result.total_latency_ms}
-          />
-        )}
       </div>
-    </div>
+    </motion.div>
   );
 }

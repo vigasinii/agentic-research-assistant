@@ -14,7 +14,7 @@
   }
 
   ::selection {
-    background: rgba(99, 102, 241, 0.35);
+    background: rgba(139, 124, 255, 0.35);
     color: #fff;
   }
 
@@ -22,6 +22,11 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+  :focus-visible {
+    outline: 2px solid rgba(139,124,255,0.6);
+    outline-offset: 2px;
+  }
 }
 
 @keyframes fade-up {
@@ -48,26 +53,38 @@
   to { transform: rotate(360deg); }
 }
 
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
 .animate-fade-up  { animation: fade-up  0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-fade-in  { animation: fade-in  0.25s ease both; }
+.animate-pulse-ring { animation: pulse-ring 1.5s ease-out infinite; }
 
 .thinking-dot { animation: thinking 1.4s ease-in-out infinite; }
 .thinking-dot:nth-child(2) { animation-delay: 0.18s; }
 .thinking-dot:nth-child(3) { animation-delay: 0.36s; }
 
 .gradient-text {
-  background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 50%, #c084fc 100%);
+  background: linear-gradient(135deg, #A69BFF 0%, #8B7CFF 50%, #c084fc 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .glow-focus:focus-within {
-  box-shadow: 0 0 0 1px rgba(99,102,241,0.6), 0 0 24px rgba(99,102,241,0.12);
+  box-shadow: 0 0 0 1px rgba(139,124,255,0.5), 0 0 24px rgba(139,124,255,0.12);
 }
 
 .glass {
   background: rgba(255,255,255,0.02);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+.shimmer-bg {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+  background-size: 400% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
 }

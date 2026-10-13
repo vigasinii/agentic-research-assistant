@@ -131,7 +131,7 @@ export default function ResearchPanel() {
 
       {result && !loading && (
         <div className="animate-fade-up">
-          <AnswerPanel result={result} />
+          <AnswerPanel result={result} onNewResearch={() => {}} />
         </div>
       )}
 
