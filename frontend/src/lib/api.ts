@@ -1,5 +1,16 @@
 const BASE_URL = '/api';
 
+export async function checkHealth(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE_URL}/health`, { cache: 'no-store' });
+    if (!res.ok) return false;
+    const body = await res.json();
+    return body.status === 'ok';
+  } catch {
+    return false;
+  }
+}
+
 export interface Document {
   id: string;
   filename: string;
