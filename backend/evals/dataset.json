@@ -1,0 +1,137 @@
+[
+  {
+    "id": "eq_001",
+    "question": "When did humans first land on the Moon and what was the mission called?",
+    "expected_answerable": true,
+    "expected_answer_contains": ["Apollo 11", "1969"],
+    "relevant_chunk_keywords": ["Apollo", "Moon", "1969", "Armstrong"],
+    "scenario": "answerable",
+    "notes": "Classic space history fact covered in history of space exploration document"
+  },
+  {
+    "id": "eq_002",
+    "question": "What is the primary goal of NASA's Mars Perseverance rover mission?",
+    "expected_answerable": true,
+    "expected_answer_contains": ["astrobiology", "ancient life", "Mars"],
+    "relevant_chunk_keywords": ["Perseverance", "Mars", "rover", "astrobiology", "sample"],
+    "scenario": "answerable",
+    "notes": "Covered in the Mars missions document"
+  },
+  {
+    "id": "eq_003",
+    "question": "What method is most commonly used to detect exoplanets outside our solar system?",
+    "expected_answerable": true,
+    "expected_answer_contains": ["transit", "radial velocity"],
+    "relevant_chunk_keywords": ["transit", "exoplanet", "detection", "Kepler", "radial velocity"],
+    "scenario": "answerable",
+    "notes": "Covered in the exoplanets document"
+  },
+  {
+    "id": "eq_004",
+    "question": "What is the boiling point of mercury at standard atmospheric pressure?",
+    "expected_answerable": false,
+    "expected_answer_contains": [],
+    "relevant_chunk_keywords": [],
+    "scenario": "unanswerable",
+    "notes": "Chemistry question not covered in any space exploration document"
+  },
+  {
+    "id": "eq_005",
+    "question": "Who wrote the novel 'The Martian' and when was it first published as an e-book?",
+    "expected_answerable": false,
+    "expected_answer_contains": [],
+    "relevant_chunk_keywords": [],
+    "scenario": "unanswerable",
+    "notes": "Literary question outside the scope of space science documents"
+  },
+  {
+    "id": "eq_006",
+    "question": "What is the annual revenue of SpaceX as of 2023?",
+    "expected_answerable": false,
+    "expected_answer_contains": [],
+    "relevant_chunk_keywords": [],
+    "scenario": "unanswerable",
+    "notes": "Financial business data not covered in space science documents"
+  },
+  {
+    "id": "eq_007",
+    "question": "Is it possible to terraform Mars within the next 50 years?",
+    "expected_answerable": false,
+    "expected_answer_contains": [],
+    "relevant_chunk_keywords": ["Mars", "terraform", "atmosphere"],
+    "scenario": "ambiguous",
+    "notes": "Documents may discuss terraforming concepts but the question asks for a definitive yes/no prediction"
+  },
+  {
+    "id": "eq_008",
+    "question": "Which black hole is closer to Earth, the one at the center of the Milky Way or M87*?",
+    "expected_answerable": false,
+    "expected_answer_contains": [],
+    "relevant_chunk_keywords": ["black hole", "Milky Way", "M87", "distance"],
+    "scenario": "ambiguous",
+    "notes": "Documents may mention both but may not provide direct distance comparison"
+  },
+  {
+    "id": "eq_009",
+    "question": "Are space stations safer today than they were in the 1970s?",
+    "expected_answerable": false,
+    "expected_answer_contains": [],
+    "relevant_chunk_keywords": ["space station", "safety", "ISS", "Salyut"],
+    "scenario": "ambiguous",
+    "notes": "Comparative safety judgment requires inference beyond what documents directly state"
+  },
+  {
+    "id": "eq_010",
+    "question": "How does the James Webb Space Telescope complement earlier discoveries made by the Hubble Space Telescope in studying deep space?",
+    "expected_answerable": true,
+    "expected_answer_contains": ["infrared", "James Webb", "Hubble"],
+    "relevant_chunk_keywords": ["Webb", "Hubble", "infrared", "telescope", "deep space"],
+    "scenario": "multi_document",
+    "notes": "Requires synthesis from space telescopes document and possibly deep space probes document"
+  },
+  {
+    "id": "eq_011",
+    "question": "How do rocket propulsion advances support future crewed missions to Mars as described across space exploration plans?",
+    "expected_answerable": true,
+    "expected_answer_contains": ["propulsion", "Mars", "mission"],
+    "relevant_chunk_keywords": ["propulsion", "Mars", "crewed", "rocket", "future"],
+    "scenario": "multi_document",
+    "notes": "Requires combining rocket propulsion document with Mars missions and future spaceflight documents"
+  },
+  {
+    "id": "eq_012",
+    "question": "What common themes appear in the study of black holes and exoplanets regarding the search for life?",
+    "expected_answerable": true,
+    "expected_answer_contains": ["habitable", "life"],
+    "relevant_chunk_keywords": ["black hole", "exoplanet", "habitable", "life", "zone"],
+    "scenario": "multi_document",
+    "notes": "Requires synthesis across black holes and exoplanets documents"
+  },
+  {
+    "id": "eq_013",
+    "question": "How many planets are in the solar system?",
+    "expected_answerable": true,
+    "expected_answer_contains": ["eight", "8"],
+    "relevant_chunk_keywords": ["planet", "solar system", "eight"],
+    "scenario": "conflicting_evidence",
+    "notes": "Some documents may refer to historical nine-planet count before Pluto reclassification vs current eight"
+  },
+  {
+    "id": "eq_014",
+    "question": "What year did the International Space Station begin continuous human habitation?",
+    "expected_answerable": true,
+    "expected_answer_contains": ["2000"],
+    "relevant_chunk_keywords": ["ISS", "International Space Station", "2000", "habitation"],
+    "scenario": "conflicting_evidence",
+    "notes": "Some sources cite 1998 (launch) vs 2000 (continuous crew); documents may give different dates"
+  },
+  {
+    "id": "eq_015",
+    "question": "What is the distance from Earth to Mars?",
+    "expected_answerable": true,
+    "expected_answer_contains": ["million"],
+    "relevant_chunk_keywords": ["Mars", "distance", "million", "kilometers"],
+    "scenario": "conflicting_evidence",
+    "notes": "Distance varies significantly with orbital positions; different documents may cite minimum, maximum, or average distances"
+  }
+]
