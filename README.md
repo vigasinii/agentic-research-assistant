@@ -1,111 +1,235 @@
 # Agentic Research Assistant
 
-A production-quality Agentic RAG system that retrieves evidence, grades its sufficiency, rewrites queries when needed, generates grounded answers with citations, and explicitly abstains when documents cannot support an answer.
+An agentic Retrieval-Augmented Generation (RAG) application that answers questions from uploaded documents using evidence retrieval, conditional query rewriting, citation verification, and explicit abstention when the available information is insufficient.
+
+Rather than relying on a single retrieve-and-generate step, the system uses **LangGraph** to manage a bounded decision workflow. It checks retrieved evidence before generating an answer and can retry retrieval when the initial results are inadequate.
+
+**Live application:** https://agentic-research-assistant-99ri.vercel.app/
+
+**Architecture diagram:** [View on Excalidraw](https://excalidraw.com/#json=zNOgC_LnYtxj7gu3tKHD4,tWFWUJJend8stjDkvAzccA)
+
+## What I Built
+
+The application allows users to upload documents and ask questions grounded in their contents.
+
+The workflow consists of two main pipelines:
+
+**Document ingestion**
+
+1. Accept PDF, TXT, and Markdown files through the FastAPI backend.
+2. Extract text using PyMuPDF for PDFs and Python's standard library for text-based formats.
+3. Split extracted text into chunks.
+4. Generate embeddings using `sentence-transformers/all-MiniLM-L6-v2`.
+5. Store document chunks and vectors in Qdrant for semantic retrieval.
+
+**Research agent**
+
+1. Analyze the user's question to prepare it for retrieval.
+2. Retrieve the top five relevant chunks from Qdrant.
+3. Grade whether the retrieved evidence is sufficient.
+4. If the evidence is insufficient, rewrite the query and retrieve again.
+5. Stop after a maximum of three retrieval iterations.
+6. Generate an answer grounded in the retrieved evidence.
+7. Verify citations against retrieved chunks.
+8. Abstain when the available evidence does not support an answer.
+
+The bounded retrieval loop prevents the agent from continuing indefinitely.
 
 ## Architecture
 
+```text
+                     Next.js Frontend
+                            |
+                            v
+                      FastAPI API
+                            |
+             +--------------+--------------+
+             |                             |
+             v                             v
+      Document Ingestion              Research Agent
+             |                             |
+             v                             v
+       Text Extraction               Query Analysis
+             |                             |
+             v                             v
+          Chunking                    Qdrant Search
+             |                             |
+             v                             v
+      SentenceTransformers           Evidence Grading
+             |                             |
+             v                       +-----+------+
+       Qdrant Storage                |            |
+                                     |            |
+                                 Sufficient   Insufficient
+                                     |            |
+                                     v            v
+                               Generate Answer  Rewrite Query
+                                     |            |
+                                     v            |
+                               Verify Citations   |
+                                     |            |
+                                     v            |
+                                Final Response <--+
+                               or Abstention
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Next.js Frontend                         │
-│   Document Upload │ Research Panel │ Citation Viewer │ Eval UI  │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │ HTTP (FastAPI)
-┌───────────────────────────▼─────────────────────────────────────┐
-│                    FastAPI Backend (main.py)                     │
-│  /documents/upload  /research  /evals/run  /evals/results       │
-└───────────┬───────────────────────────────┬─────────────────────┘
-            │                               │
-┌───────────▼──────────────┐   ┌────────────▼──────────────────┐
-│   LangGraph Agent        │   │   Qdrant Vector DB            │
-│                          │   │   (Docker local / Cloud prod) │
-│  query_analysis_node     │   └────────────┬──────────────────┘
-│       ↓                  │                │
-│  retrieve_node ──────────┼────────────────┘ (search_documents)
-│       ↓                  │
-│  grade_node              │   ┌───────────────────────────────┐
-│  ↙ sufficient  ↘ not     │   │   Groq LLM API                │
-│  answer_node  rewrite    │   │   (grade, rewrite, answer,    │
-│       ↓        ↓         │   │    verify, query_analysis)    │
-│  verify_node  retrieve   │   └───────────────────────────────┘
-│       ↓                  │
-│   ResearchResponse       │   ┌───────────────────────────────┐
-│   (answer+citations      │   │   SentenceTransformers        │
-│    +abstention)          │   │   all-MiniLM-L6-v2 (384d)     │
-└──────────────────────────┘   └───────────────────────────────┘
-```
+
+The research workflow is orchestrated using LangGraph. Qdrant handles vector retrieval, while Groq provides LLM inference for query analysis, evidence grading, rewriting, answer generation, and verification.
+
+## Technology Stack
+
+| Component | Technology |
+|---|---|
+| Frontend | Next.js 14, TypeScript, Tailwind CSS |
+| Backend | Python 3.11, FastAPI, Pydantic v2 |
+| Agent orchestration | LangGraph |
+| LLM inference | Groq API |
+| Default LLM | `llama-3.1-8b-instant` |
+| Embeddings | SentenceTransformers, `all-MiniLM-L6-v2` |
+| Vector database | Qdrant |
+| PDF extraction | PyMuPDF |
+| Testing | pytest, pytest-mock |
+| CI | GitHub Actions |
+| Frontend hosting | Vercel |
+| Backend hosting | Render |
+| Production vector storage | Qdrant Cloud |
 
 ## Agent Decision Flow
 
-```
+```text
 START
-  │
-  ▼
-Query Analysis (LLM refines question for retrieval)
-  │
-  ▼
-Retrieve Evidence (Qdrant semantic search, top-5)
-  │
-  ▼
-Grade Evidence ──── sufficient? ────────────────────┐
-  │                                                  │
-  NO (and iterations < max)                         YES
-  │                                                  │
-  ▼                                                  │
-Rewrite Query (LLM rephrases)                        │
-  │                                                  │
-  ▼                                                  │
-Retrieve Again ──────── still not? ──── abstain     │
-                                                     ▼
-                                              Generate Answer
-                                                     │
-                                                     ▼
-                                             Verify Citations
-                                                     │
-                                                     ▼
-                                              ResearchResponse
+  |
+  v
+Analyze Question
+  |
+  v
+Retrieve Top-5 Chunks
+  |
+  v
+Grade Evidence
+  |
+  +---- Sufficient ----> Generate Answer
+  |                            |
+  |                            v
+  |                      Verify Citations
+  |                            |
+  |                            v
+  |                      Return Response
+  |
+  +---- Insufficient
+           |
+           v
+     Retry limit reached?
+           |
+      +----+----+
+      |         |
+      No       Yes
+      |         |
+      v         v
+  Rewrite    Abstain
+    Query
+      |
+      v
+  Retrieve Again
 ```
 
-Max 3 retrieval iterations (configurable). Terminates deterministically.
+The maximum number of retrieval iterations is configurable and defaults to three.
 
-## Tech Stack
+## API Endpoints
 
-| Layer | Technology |
+| Endpoint | Purpose |
 |---|---|
-| Backend | Python 3.11, FastAPI, Pydantic v2 |
-| Agent | LangGraph state machine |
-| LLM | Groq API (llama-3.1-8b-instant by default) |
-| Embeddings | sentence-transformers/all-MiniLM-L6-v2 (384d) |
-| Vector DB | Qdrant (Docker local / Qdrant Cloud prod) |
-| Documents | PyMuPDF (PDF), stdlib (TXT/MD) |
-| Frontend | Next.js 14, TypeScript, Tailwind CSS |
-| Tests | pytest, pytest-mock |
-| CI | GitHub Actions |
-| Deployment | Render (backend + frontend) |
+| `POST /documents/upload` | Upload and ingest a document |
+| `POST /research` | Run a document-grounded research query |
+| `POST /evals/run` | Execute the evaluation suite |
+| `GET /evals/results` | Retrieve evaluation results |
 
-## Local Setup
+Interactive API documentation is available at `/docs` when the backend is running.
 
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- Docker & Docker Compose
-- [Groq API key](https://console.groq.com) (free tier available)
+## Evaluation Framework
 
-### 1. Clone and configure
+I built a pytest-based evaluation framework to test both retrieval quality and agent behaviour.
+
+The benchmark contains **15 cases across five scenario types**.
+
+| Scenario | Cases | What it tests |
+|---|---:|---|
+| Answerable | 3 | Questions clearly supported by the documents |
+| Unanswerable | 3 | Questions with no supporting evidence |
+| Ambiguous | 3 | Questions with partial or unclear evidence |
+| Multi-document | 3 | Questions requiring information from multiple documents |
+| Conflicting evidence | 3 | Questions involving contradictory information |
+| **Total** | **15** | |
+
+### Metrics
+
+**Precision@K:** Measures the proportion of retrieved chunks considered relevant.
+
+**Recall@K:** Measures the proportion of relevant chunks successfully retrieved.
+
+**Abstention accuracy:** Measures whether the agent correctly answers supported questions and abstains on unsupported ones.
+
+**Citation validity:** Checks whether cited chunk references correspond to evidence actually retrieved.
+
+**Answer accuracy:** Checks generated answers against expected answer keywords in the benchmark.
+
+**Average latency:** Measures end-to-end execution time.
+
+Retrieval relevance is evaluated using deterministic keyword matching against benchmark annotations, rather than an LLM judge.
+
+### Evaluation Results
+
+The repository includes an evaluation runner and benchmark dataset. To obtain reproducible results for a configured environment, run:
 
 ```bash
-git clone https://github.com/vigasinii/agentic-research-assistant
-cd agentic-research-assistant
-cp .env.example backend/.env
-# Edit backend/.env and set GROQ_API_KEY=your_key
+cd backend
+python -m evals.runner
 ```
 
-### 2. Start Qdrant
+Results are saved to:
+
+```text
+backend/evals/eval_results.json
+```
+
+**Note:** I have intentionally not published estimated scores as measured results. Actual evaluation metrics depend on the uploaded document corpus, model configuration, and test execution. The benchmark is currently small and should be expanded before treating its results as representative of production performance.
+
+## Running Locally
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- Docker and Docker Compose
+- Groq API key
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/vigasinii/agentic-research-assistant.git
+cd agentic-research-assistant
+```
+
+### 2. Configure environment variables
+
+```bash
+cp .env.example backend/.env
+```
+
+Add your Groq API key to `backend/.env`:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+```
+
+Keep `.env` files out of version control.
+
+### 3. Start Qdrant
 
 ```bash
 docker-compose up -d
 ```
 
-### 3. Backend
+### 4. Start the backend
 
 ```bash
 cd backend
@@ -113,9 +237,21 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-API docs at http://localhost:8000/docs
+Backend:
 
-### 4. Frontend
+```text
+http://localhost:8000
+```
+
+API documentation:
+
+```text
+http://localhost:8000/docs
+```
+
+### 5. Start the frontend
+
+Open another terminal:
 
 ```bash
 cd frontend
@@ -123,175 +259,61 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000
+Frontend:
 
-### 5. Upload a document and ask a question
+```text
+http://localhost:3000
+```
+
+### 6. Upload a document
 
 ```bash
-# Upload a document
 curl -X POST http://localhost:8000/documents/upload \
   -F "file=@your_document.pdf"
+```
 
-# Ask a research question
+### 7. Ask a research question
+
+```bash
 curl -X POST http://localhost:8000/research \
   -H "Content-Type: application/json" \
-  -d '{"question": "What are the key findings about Mars habitability?"}'
+  -d '{"question": "What are the main findings in the uploaded document?"}'
 ```
 
-## Running Evaluations
-
-### CLI (recommended for reproducibility)
+## Running Tests
 
 ```bash
 cd backend
-GROQ_API_KEY=your_key python -m evals.runner
+pytest
 ```
 
-Results are saved to `backend/evals/eval_results.json`.
+The test suite includes coverage for document ingestion, agent tools, evaluation metrics, and agent termination behaviour.
 
-### Via API
+## Security and Reliability
 
-```bash
-curl -X POST http://localhost:8000/evals/run \
-  -H "X-Eval-Key: eval-secret-change-me"
-```
+The application includes several controls intended to make agent behaviour more predictable:
 
-## Evaluation Methodology
+- API keys are loaded through environment variables rather than hardcoded.
+- Retrieved document text is treated as untrusted input.
+- Evaluation endpoints require an API key.
+- Document uploads have server-side size limits.
+- CORS origins are configurable.
+- The research endpoint includes IP-based rate limiting.
+- Retrieval retries are bounded to prevent indefinite agent execution.
+- The agent can abstain when retrieved evidence is insufficient.
 
-The benchmark dataset (`backend/evals/dataset.json`) contains 15 cases across 5 scenario types:
+These controls reduce risk but do not eliminate hallucinations, prompt injection, or retrieval errors.
 
-| Scenario | Count | Description |
-|---|---|---|
-| Answerable | 3 | Clearly answered from uploaded docs |
-| Unanswerable | 3 | Outside available knowledge |
-| Ambiguous | 3 | Partial overlap, unclear answer |
-| Multi-document | 3 | Requires synthesis across docs |
-| Conflicting evidence | 3 | Different sections give different details |
 
-### Metrics
 
-| Metric | Formula | Notes |
-|---|---|---|
-| Precision@K | TP_chunks / (TP_chunks + FP_chunks) | Relevant chunks / all retrieved |
-| Recall@K | TP_chunks / (TP_chunks + FN_chunks) | Relevant retrieved / all relevant |
-| Abstention Accuracy | correct_abstentions / total | Agent answers ↔ ground truth answerability |
-| Citation Validity | valid_citations / total_citations | Citations reference actually retrieved chunks |
-| Answer Accuracy | correct_answers / answerable_cases | Expected keywords appear in answer |
-| Avg Latency | mean(end_to_end_ms) | Full agent run time |
+## Project Links
 
-Relevance is determined by keyword matching against `relevant_chunk_keywords` in the dataset. No LLM judge is used for retrieval metrics — they are fully deterministic.
+**Live application:** https://agentic-research-assistant-99ri.vercel.app/
 
-### Sample Eval Results
+**GitHub:** https://github.com/vigasinii/agentic-research-assistant
 
-*(Run `python -m evals.runner` to generate real numbers — these are representative estimates)*
+**Architecture diagram:** https://excalidraw.com/#json=zNOgC_LnYtxj7gu3tKHD4,tWFWUJJend8stjDkvAzccA
 
-| Metric | Value |
-|---|---|
-| Precision@5 | ~0.72 |
-| Recall@5 | ~0.65 |
-| Abstention Accuracy | ~0.87 |
-| Citation Validity | ~0.95 |
-| Answer Accuracy | ~0.78 |
-| Avg Latency | ~3.2s |
+---
 
-## Production Deployment (Render)
-
-### Backend
-
-1. Create a new Web Service on Render pointing to this repo
-2. Set Root Directory: `backend`
-3. Build Command: `pip install -r requirements.txt`
-4. Start Command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-5. Add environment variables (see `render.yaml`):
-   - `GROQ_API_KEY`
-   - `QDRANT_URL` (your Qdrant Cloud cluster URL)
-   - `QDRANT_API_KEY` (your Qdrant Cloud API key)
-   - `EVAL_API_KEY` (choose a strong secret)
-   - `CORS_ORIGINS` (your frontend URL, e.g. `["https://your-app.vercel.app"]`)
-
-### Qdrant Cloud
-
-1. Sign up at cloud.qdrant.io
-2. Create a cluster (free tier available)
-3. Copy the cluster URL and API key to Render env vars
-
-### Frontend
-
-Deploy to Vercel or Render static site:
-```bash
-cd frontend
-npm run build
-```
-Set `NEXT_PUBLIC_API_URL` to your Render backend URL.
-
-## Project Structure
-
-```
-agentic-research-assistant/
-├── backend/
-│   ├── main.py                    # FastAPI app, all endpoints
-│   ├── config.py                  # Pydantic-settings, env validation
-│   ├── models.py                  # All Pydantic request/response models
-│   ├── requirements.txt
-│   ├── agent/
-│   │   ├── graph.py               # LangGraph state machine
-│   │   ├── tools.py               # 5 plain Python tools
-│   │   └── state.py               # AgentState TypedDict
-│   ├── services/
-│   │   ├── qdrant_service.py      # Qdrant CRUD operations
-│   │   ├── embeddings.py          # SentenceTransformer wrapper
-│   │   ├── ingestion.py           # Document upload pipeline
-│   │   └── llm.py                 # Groq client wrapper
-│   ├── evals/
-│   │   ├── runner.py              # Eval orchestration + CLI
-│   │   ├── metrics.py             # Pure metric functions
-│   │   └── dataset.json           # 15-case benchmark
-│   └── tests/
-│       ├── conftest.py
-│       ├── test_ingestion.py
-│       ├── test_tools.py
-│       ├── test_metrics.py
-│       └── test_agent_termination.py
-├── frontend/
-│   ├── src/
-│   │   ├── app/                   # Next.js app router
-│   │   ├── components/            # UI components
-│   │   └── lib/api.ts             # Type-safe API client
-│   └── package.json
-├── .env.example
-├── .gitignore
-├── docker-compose.yml
-├── render.yaml
-└── .github/workflows/test.yml
-```
-
-## Security Notes
-
-- API keys loaded via env vars only — never hardcoded or logged
-- Retrieved document content is treated as untrusted data (never used as system instructions)
-- Eval endpoints protected by `X-Eval-Key` header
-- Upload size limits enforced server-side
-- CORS allowlist configured via env var
-- Rate limiting on /research endpoint (10 req/min per IP)
-
-## Limitations
-
-- Retrieval quality depends on semantic similarity — questions using different terminology from the source documents may not retrieve the right chunks
-- Evidence grading and answer verification use the same LLM as answering — a model that hallucinates in one step may fail in another
-- The eval dataset (15 cases) is small; real-world precision/recall will vary by document corpus
-- In-memory run storage resets on server restart (use a database for production persistence)
-
-## Reproducing Eval Results
-
-```bash
-git clone https://github.com/vigasinii/agentic-research-assistant
-cd agentic-research-assistant
-cp .env.example backend/.env
-# Set GROQ_API_KEY in backend/.env
-docker-compose up -d
-cd backend
-pip install -r requirements.txt
-# Upload the space exploration docs first (or any PDF/TXT/MD corpus)
-python -m evals.runner
-cat evals/eval_results.json
-```
+Built as a practical exploration of agentic RAG systems, with a focus on evidence-grounded answers, explicit decision paths, bounded execution, and measurable evaluation.
